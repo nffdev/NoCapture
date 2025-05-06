@@ -35,4 +35,24 @@ namespace NoCapture {
         EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&data));
         return data.hwnds;
     }
+
+    public ref class MyForm : public System::Windows::Forms::Form {
+    public:
+        MyForm(void) {
+            InitializeComponent();
+            LoadProcessList();
+        }
+
+    protected:
+        ~MyForm() {
+            if (components) {
+                delete components;
+            }
+        }
+
+    private:
+        System::Windows::Forms::DataGridView^ dataGridView1;
+        System::ComponentModel::Container^ components;
+        System::Windows::Forms::Button^ refreshButton;
+    };
 }
