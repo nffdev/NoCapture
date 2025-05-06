@@ -116,5 +116,39 @@ namespace NoCapture {
 
             this->dataGridView1->CellClick += gcnew DataGridViewCellEventHandler(this, &MyForm::dataGridView1_CellClick);
         }
+
+        void LoadProcessList() {
+            HANDLE hProcessSnap;
+            PROCESSENTRY32 pe32;
+            pe32.dwSize = sizeof(PROCESSENTRY32);
+
+            hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+            if (hProcessSnap == INVALID_HANDLE_VALUE) {
+                MessageBox::Show("Failed to create process snapshot.");
+                return;
+            }
+
+            if (Process32First(hProcessSnap, &pe32)) {
+                do {
+                    String^ processName = gcnew String(pe32.szExeFile);
+                    int pid = pe32.th32ProcessID;
+
+                    std::vector<HWND> hwnds = FindWindowHandles(pid);
+                    String^ handleStr = "N/A";
+
+                    if (!hwnds.empty()) {
+                        handleStr = ((INT64)hwnds[0]).ToString(); 
+                    }
+
+                    this->dataGridView1->Rows->Add(processName, pid, "Inject", "Detach", "Hide", "No", handleStr);
+                } while (Process32Next(hProcessSnap, &pe32));
+            }
+            CloseHandle(hProcessSnap);
+        }
+
+        void RefreshButton_Click(System::Object^ sender, System::EventArgs^ e) {
+            this->dataGridView1->Rows->Clear();
+            LoadProcessList();
+        }
     };
 }
