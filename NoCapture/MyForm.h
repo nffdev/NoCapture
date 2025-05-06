@@ -150,5 +150,59 @@ namespace NoCapture {
             this->dataGridView1->Rows->Clear();
             LoadProcessList();
         }
+
+        void dataGridView1_CellClick(System::Object^ sender, DataGridViewCellEventArgs^ e) {
+            if (e->RowIndex >= 0 && e->ColumnIndex == 2) { 
+                String^ processName = this->dataGridView1->Rows[e->RowIndex]->Cells[0]->Value->ToString();
+                int pid = Convert::ToInt32(this->dataGridView1->Rows[e->RowIndex]->Cells[1]->Value);
+                String^ handleStr = this->dataGridView1->Rows[e->RowIndex]->Cells[6]->Value->ToString();
+
+                if (handleStr == "N/A") {
+                    MessageBox::Show("No window handle found for this process.");
+                    return;
+                }
+
+                HWND hwnd = (HWND)Convert::ToInt64(handleStr);
+                HANDLE procHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+                if (procHandle == NULL) {
+                    MessageBox::Show("Failed to open process: " + processName);
+                    return;
+                }
+
+                DWORD_PTR lAffinity = 1;
+                HMODULE hUser32 = LoadLibrary(L"user32.dll");
+                if (hUser32 == NULL) {
+                    CloseHandle(procHandle);
+                    MessageBox::Show("Failed to load user32.dll");
+                    return;
+                }
+
+                FARPROC lpSetWindowDisplayAffinity = GetProcAddress(hUser32, "SetWindowDisplayAffinity");
+                if (lpSetWindowDisplayAffinity == NULL) {
+                    FreeLibrary(hUser32);
+                    CloseHandle(procHandle);
+                    MessageBox::Show("Failed to get SetWindowDisplayAffinity address");
+                    return;
+                }
+
+                SetAffinity(procHandle, hwnd, lAffinity, lpSetWindowDisplayAffinity);
+
+                FreeLibrary(hUser32);
+                CloseHandle(procHandle);
+
+                this->dataGridView1->Rows[e->RowIndex]->Cells[5]->Value = "Yes";
+            }
+            else if (e->RowIndex >= 0 && (e->ColumnIndex == 3 || e->ColumnIndex == 4)) { 
+                String^ processName = this->dataGridView1->Rows[e->RowIndex]->Cells[0]->Value->ToString();
+                int pid = Convert::ToInt32(this->dataGridView1->Rows[e->RowIndex]->Cells[1]->Value);
+
+                if (e->ColumnIndex == 3) {
+                    MessageBox::Show("Detaching from process: " + processName + " (PID: " + pid + ")");
+                }
+                else if (e->ColumnIndex == 4) {
+                    MessageBox::Show("Hiding process: " + processName + " (PID: " + pid + ")");
+                }
+            }
+        }
     };
 }
