@@ -17,4 +17,22 @@ namespace NoCapture {
         DWORD processId;
         std::vector<HWND> hwnds;
     };
+
+    static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+        EnumWindowsData* data = reinterpret_cast<EnumWindowsData*>(lParam);
+        DWORD windowProcessId;
+        GetWindowThreadProcessId(hwnd, &windowProcessId);
+
+        if (windowProcessId == data->processId && IsWindowVisible(hwnd) && (GetWindow(hwnd, GW_OWNER) == NULL)) {
+            data->hwnds.push_back(hwnd);
+        }
+        return TRUE;
+    }
+
+    static std::vector<HWND> FindWindowHandles(DWORD processId) {
+        EnumWindowsData data;
+        data.processId = processId;
+        EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&data));
+        return data.hwnds;
+    }
 }
