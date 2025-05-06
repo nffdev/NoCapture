@@ -71,3 +71,52 @@ void SetAffinity(HANDLE procHandle, HWND lhWnd, DWORD lAffinity, FARPROC lpSetWi
     VirtualFreeEx(procHandle, addr, sizeof(_affinitySet), MEM_RELEASE);
     VirtualFreeEx(procHandle, returnAddress, 8, MEM_RELEASE);
 }
+
+std::vector<DWORD> FindTargetProcessIds(const std::vector<std::wstring>& targetExecutables) {
+    std::vector<DWORD> processIds;
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+        std::cerr << "Failed to create process snapshot" << std::endl;
+        return processIds;
+    }
+
+    PROCESSENTRY32 pe32;
+    pe32.dwSize = sizeof(PROCESSENTRY32);
+    if (Process32First(hSnapshot, &pe32)) {
+        do {
+            for (const auto& exeName : targetExecutables) {
+                if (_wcsicmp(pe32.szExeFile, exeName.c_str()) == 0) {
+                    processIds.push_back(pe32.th32ProcessID);
+                }
+            }
+        } while (Process32Next(hSnapshot, &pe32));
+    }
+    else {
+        std::cerr << "Failed to get first process" << std::endl;
+    }
+    CloseHandle(hSnapshot);
+    return processIds;
+}
+
+struct EnumWindowsData {
+    DWORD processId;
+    std::vector<HWND> hwnds;
+};
+
+BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
+    EnumWindowsData* data = reinterpret_cast<EnumWindowsData*>(lParam);
+    DWORD windowProcessId;
+    GetWindowThreadProcessId(hwnd, &windowProcessId);
+
+    if (windowProcessId == data->processId && IsWindowVisible(hwnd) && (GetWindow(hwnd, GW_OWNER) == NULL)) {
+        data->hwnds.push_back(hwnd);
+    }
+    return TRUE;
+}
+
+std::vector<HWND> FindWindows(DWORD processId) {
+    EnumWindowsData data;
+    data.processId = processId;
+    EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&data));
+    return data.hwnds;
+}
