@@ -3,3 +3,4 @@ bin
 obj
 packages
 x64
+settings.json
