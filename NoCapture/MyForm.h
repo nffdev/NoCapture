@@ -197,12 +197,44 @@ namespace NoCapture {
                 int pid = Convert::ToInt32(this->dataGridView1->Rows[e->RowIndex]->Cells[1]->Value);
 
                 if (e->ColumnIndex == 3) {
-                    MessageBox::Show("Detaching from process: " + processName + " (PID: " + pid + ")");
+                    HWND hwnd = (HWND)Convert::ToInt64(this->dataGridView1->Rows[e->RowIndex]->Cells[6]->Value->ToString());
+                    UnhookProcess(pid, hwnd);
+                    this->dataGridView1->Rows[e->RowIndex]->Cells[5]->Value = "No";
+                    MessageBox::Show("Detached from process: " + processName + " (PID: " + pid + ")");
                 }
                 else if (e->ColumnIndex == 4) {
                     MessageBox::Show("Hiding process: " + processName + " (PID: " + pid + ")");
                 }
             }
+        }
+
+        void UnhookProcess(int pid, HWND hwnd) {
+            HANDLE procHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+            if (procHandle == NULL) {
+                MessageBox::Show("Failed to open process for unhooking.");
+                return;
+            }
+
+            HMODULE hUser32 = LoadLibrary(L"user32.dll");
+            if (hUser32 == NULL) {
+                CloseHandle(procHandle);
+                MessageBox::Show("Failed to load user32.dll");
+                return;
+            }
+
+            FARPROC lpSetWindowDisplayAffinity = GetProcAddress(hUser32, "SetWindowDisplayAffinity");
+            if (lpSetWindowDisplayAffinity == NULL) {
+                FreeLibrary(hUser32);
+                CloseHandle(procHandle);
+                MessageBox::Show("Failed to get SetWindowDisplayAffinity address");
+                return;
+            }
+
+            DWORD_PTR lAffinity = 0;
+            SetAffinity(procHandle, hwnd, lAffinity, lpSetWindowDisplayAffinity);
+
+            FreeLibrary(hUser32);
+            CloseHandle(procHandle);
         }
 
         void SetAffinity(HANDLE procHandle, HWND lhWnd, DWORD lAffinity, FARPROC lpSetWindowDisplayAffinity) {
