@@ -120,3 +120,72 @@ std::vector<HWND> FindWindows(DWORD processId) {
     EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&data));
     return data.hwnds;
 }
+
+int main(int argc, char* argv[]) {
+    std::vector<std::wstring> targetExecutables;
+
+    if (argc > 1) {
+        for (int i = 1; i < argc; ++i) {
+            std::wstring exeName = std::wstring(argv[i], argv[i] + strlen(argv[i]));
+            targetExecutables.push_back(exeName);
+        }
+    }
+    else {
+        targetExecutables = { L"explorer.exe", L"arc.exe", L"chrome.exe" };
+    }
+
+    std::wcout << L"Target executables: ";
+    for (const auto& exe : targetExecutables) {
+        std::wcout << exe << L" ";
+    }
+    std::wcout << std::endl;
+
+    while (true) {
+        std::vector<DWORD> processIds = FindTargetProcessIds(targetExecutables);
+        if (processIds.empty()) {
+            std::cerr << "Target processes not found" << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            continue;
+        }
+
+        for (DWORD processId : processIds) {
+            std::vector<HWND> hwnds = FindWindows(processId);
+            if (!hwnds.empty()) {
+                std::cout << "Found windows for process ID: " << processId << std::endl;
+                for (HWND hwnd : hwnds) {
+                    std::cout << "Window handle: " << hwnd << std::endl;
+                    HANDLE procHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+                    if (procHandle == NULL) {
+                        std::cerr << "Failed to open process" << std::endl;
+                        continue;
+                    }
+
+                    DWORD_PTR lAffinity = 1;
+                    HMODULE hUser32 = LoadLibrary(L"user32.dll");
+                    if (hUser32 == NULL) {
+                        std::cerr << "Failed to load user32.dll" << std::endl;
+                        CloseHandle(procHandle);
+                        continue;
+                    }
+
+                    FARPROC lpSetWindowDisplayAffinity = GetProcAddress(hUser32, "SetWindowDisplayAffinity");
+                    if (lpSetWindowDisplayAffinity == NULL) {
+                        std::cerr << "Failed to get SetWindowDisplayAffinity address" << std::endl;
+                        FreeLibrary(hUser32);
+                        CloseHandle(procHandle);
+                        continue;
+                    }
+
+                    SetAffinity(procHandle, hwnd, lAffinity, lpSetWindowDisplayAffinity);
+
+                    FreeLibrary(hUser32);
+                    CloseHandle(procHandle);
+                }
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    return 0;
+}
