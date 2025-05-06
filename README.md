@@ -64,3 +64,29 @@ static std::vector<HWND> FindWindowHandles(DWORD processId) {
     return data.hwnds;
 }
 ```
+
+## Usage Guide
+
+1. Run NoCapture.exe
+2. Select a process from the list
+3. Click "Inject" to enable screen capture protection
+4. Click "Detach" to disable protection
+5. Use "Refresh" to update the process list
+
+## Technical Notes
+
+### Display Affinity Values
+
+| Value | Description |
+|-------|-------------|
+| 0     | Normal display (default) |
+| 1     | Screen capture protection |
+
+### Compatibility
+
+- Windows 10 (all versions)
+- Windows 11 (all versions)
+
+---
+
+*This documentation is provided for educational purposes only. Use of NoCapture must comply with all applicable laws and regulations.*
