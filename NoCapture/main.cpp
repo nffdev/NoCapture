@@ -5,6 +5,7 @@
 #include <chrono>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <random>
 #include <ctime>
 
@@ -102,18 +103,18 @@ std::vector<DWORD> FindTargetProcessIds(const std::vector<std::wstring>& targetE
 
 void RandomizeConsoleName() {
     std::mt19937 rng(static_cast<unsigned int>(std::time(nullptr)));
-    
+
     const std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    
+
     std::uniform_int_distribution<> length_dist(8, 20);
     int length = length_dist(rng);
-    
+
     std::uniform_int_distribution<> char_dist(0, static_cast<int>(chars.size() - 1));
     std::wstring randomName = L"";
     for (int i = 0; i < length; ++i) {
         randomName += chars[char_dist(rng)];
     }
-    
+
     SetConsoleTitle(randomName.c_str());
 }
 
@@ -142,17 +143,42 @@ std::vector<HWND> FindWindows(DWORD processId) {
 
 int main(int argc, char* argv[]) {
     RandomizeConsoleName();
-    
+
     std::vector<std::wstring> targetExecutables;
 
     if (argc > 1) {
         for (int i = 1; i < argc; ++i) {
             std::wstring exeName = std::wstring(argv[i], argv[i] + strlen(argv[i]));
+            if (exeName.find(L".exe") == std::wstring::npos) {
+                exeName += L".exe";
+            }
             targetExecutables.push_back(exeName);
         }
     }
     else {
-        targetExecutables = { L"explorer.exe", L"arc.exe", L"chrome.exe" };
+        std::cout << "Enter exes to hide (separated by spaces, without .exe):" << std::endl;
+        std::cout << "Example: chrome firefox discord" << std::endl;
+
+        std::string input;
+        std::getline(std::cin, input);
+
+        if (input.empty()) {
+            std::cout << "No input detected, using default values." << std::endl;
+            targetExecutables = { L"explorer.exe", L"arc.exe", L"chrome.exe" };
+        }
+        else {
+            std::istringstream iss(input);
+            std::string app;
+
+            while (iss >> app) {
+                if (app.find(".exe") == std::string::npos) {
+                    app += ".exe";
+                }
+
+                std::wstring wapp(app.begin(), app.end());
+                targetExecutables.push_back(wapp);
+            }
+        }
     }
 
     std::wcout << L"Target executables: ";
