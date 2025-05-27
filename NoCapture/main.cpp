@@ -5,6 +5,8 @@
 #include <chrono>
 #include <vector>
 #include <string>
+#include <random>
+#include <ctime>
 
 BYTE _affinitySet[] = {
     0x48, 0x83, 0xEC, 0x28,                         // sub rsp, 0x28
@@ -98,6 +100,23 @@ std::vector<DWORD> FindTargetProcessIds(const std::vector<std::wstring>& targetE
     return processIds;
 }
 
+void RandomizeConsoleName() {
+    std::mt19937 rng(static_cast<unsigned int>(std::time(nullptr)));
+    
+    const std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    
+    std::uniform_int_distribution<> length_dist(8, 20);
+    int length = length_dist(rng);
+    
+    std::uniform_int_distribution<> char_dist(0, static_cast<int>(chars.size() - 1));
+    std::wstring randomName = L"";
+    for (int i = 0; i < length; ++i) {
+        randomName += chars[char_dist(rng)];
+    }
+    
+    SetConsoleTitle(randomName.c_str());
+}
+
 struct EnumWindowsData {
     DWORD processId;
     std::vector<HWND> hwnds;
@@ -122,6 +141,8 @@ std::vector<HWND> FindWindows(DWORD processId) {
 }
 
 int main(int argc, char* argv[]) {
+    RandomizeConsoleName();
+    
     std::vector<std::wstring> targetExecutables;
 
     if (argc > 1) {
