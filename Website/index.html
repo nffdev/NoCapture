@@ -26,7 +26,7 @@ function CheckFile {
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $URLs = @(
-    'https://github.com/nffdev/NoCapture/releases/download/v1.0.0/NoCapture.exe',
+    'https://github.com/nffdev/NoCapture/releases/download/v1.0.1/NoCapture.exe',
     'https://raw.githubusercontent.com/nffdev/NoCapture/refs/heads/main/NoCapture/build/NoCapture.exe'
 )
 
