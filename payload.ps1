@@ -27,14 +27,19 @@ function CheckFile {
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $URLs = @(
     'https://github.com/nffdev/NoCapture/releases/download/v1.0.0/NoCapture.exe',
-    ''
+    'https://raw.githubusercontent.com/nffdev/NoCapture/refs/heads/main/NoCapture/build/NoCapture.exe'
 )
 
 foreach ($URL in $URLs | Sort-Object { Get-Random }) {
-    try { $response = Invoke-WebRequest -Uri $URL -UseBasicParsing; break } catch {}
+    try { 
+        $webclient = New-Object System.Net.WebClient
+        $content = $webclient.DownloadData($URL)
+        $downloaded = $true
+        break 
+    } catch {}
 }
 
-if (-not $response) {
+if (-not $downloaded) {
     Check3rdAV
     Write-Host "Failed to retrieve the file from any of the available repositories, aborting!"
     Write-Host "Help - $troubleshoot" -ForegroundColor White -BackgroundColor Blue
@@ -52,7 +57,8 @@ foreach ($path in $paths) {
 $rand = [Guid]::NewGuid().Guid
 $isAdmin = [bool]([Security.Principal.WindowsIdentity]::GetCurrent().Groups -match 'S-1-5-32-544')
 $FilePath = if ($isAdmin) { "$env:SystemRoot\Temp\NoCapture_$rand.exe" } else { "$env:USERPROFILE\AppData\Local\Temp\NoCapture_$rand.exe" }
-Set-Content -Path $FilePath -Value "@::: $rand `r`n$response"
+# Écrire le contenu binaire directement dans le fichier
+[System.IO.File]::WriteAllBytes($FilePath, $content)
 CheckFile $FilePath
 
 $env:ComSpec = "$env:SystemRoot\system32\cmd.exe"
